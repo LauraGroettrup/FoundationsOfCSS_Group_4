@@ -1,0 +1,236 @@
+---
+title: "Flo"
+output: pdf_document
+---
+
+```{r}
+sentiment <- vader_df(combined_df$text)
+combined_df <- cbind (combined_df, sentiment["compound"])
+```
+
+## R Markdown
+
+Filter for relevant movements
+
+```{r}
+movement_no_relevant_tweet_tesla <- (filter(tesla_df, relevant_tweet_posted==F))$movement
+movement_relevant_tweet_tesla <- (filter(tesla_df, relevant_tweet_posted==T))$movement
+movement_tesla <- tesla_df$movement
+movement_no_tweet_tesla <- (filter(tesla_df, tweet_posted==FALSE))$movement
+movement_tweet_tesla <- (filter(tesla_df, tweet_posted==TRUE))$movement
+```
+
+TESLA: 
+comparison: do stock-movements differ significantly from each other when Musk tweets something (movement_tweet_tesla) vs. when Musk tweets nothing (movement_no_tweet_tesla)? 
+first step: testing if variances of the two groups are equal, which they are not -> using Welch-Test
+```{r}
+var_hom <- var.test(movement_tweet_tesla, movement_no_tweet_tesla)
+var_hom
+```
+t-test for independent samples to test hypothesis 1: Elon Musks tweets have an impact on tesla-stock-movements. 
+Hypothesis 1 could not be verified: Tesla-Stock-Movements do not differ in dependency of Elon Musks Tweets (t = -0.26, ns)
+```{r}
+t.test(movement_tweet_tesla, movement_no_tweet_tesla, var.equal = F, alternative = "two.sided")
+```
+
+creating values in order to plot the results of the independent sampled t-test
+```{r}
+# Means and create SEM
+mean_movement_tweet_tesla <- mean(movement_tweet_tesla)
+mean_movement_no_tweet_tesla <- mean(movement_no_tweet_tesla)
+SEM_movement_tweet_tesla <- sd(movement_tweet_tesla)/sqrt(length((movement_tweet_tesla)))
+SEM_movement_no_tweet_tesla <- sd(movement_no_tweet_tesla)/sqrt(length((movement_no_tweet_tesla)))
+SEM_movement_no_tweet_tesla
+SEM_movement_tweet_tesla
+mean_movement_tweet_tesla
+mean_movement_no_tweet_tesla
+```
+plotting the results via ggplot2
+```{r}
+#create sample data
+tesla_stock_move <- data.frame(name=c("movement_tweet_tesla","movement_no_tweet_tesla"),
+                  value=c(mean_movement_tweet_tesla, mean_movement_no_tweet_tesla),
+                  SEM=c(SEM_movement_tweet_tesla, SEM_movement_no_tweet_tesla)
+)
+
+#create barplot 
+ggplot(tesla_stock_move, aes(name, value))+
+  geom_col(size=5)+
+  geom_errorbar( aes(x=name, ymin=value-SEM, ymax=value+SEM), width=0.5, colour="orange", alpha=0.9, size=0.5)
+```
+histogram of our descriptive tesla-movement-data 
+```{r}
+hist(movement_tweet_tesla)
+hist(movement_no_tweet_tesla)
+```
+NEXT ANALYSIS TESLA
+comparison: do stock-movements differ significantly from each other when Musk tweets something relevant (movement_relevant_tweet_tesla) vs. when Musk tweets nothing relevant (movement_no_tweet_tesla)? 
+
+first step: testing if variances of the two groups are equal, which they are
+```{r}
+var_hom <- var.test(movement_relevant_tweet_tesla, movement_no_relevant_tweet_tesla)
+var_hom
+```
+
+t-test for independent samples to test hypothesis 2: Elon Musks relevant tweets have an impact on tesla-stock-movements. 
+Hypothesis 1 could not be verified: Tesla-Stock-Movements do not differ in dependency of Elon Musks relevant Tweets (t = -0.031, ns)
+
+```{r}
+t.test(movement_relevant_tweet_tesla, movement_no_relevant_tweet_tesla, var.equal = T, alternative = "two.sided")
+```
+
+creating values in order to plot the results of the indepentend sampled t-test
+```{r}
+# Means and create SEM
+mean_movement_relevant_tweet_tesla <- mean(movement_relevant_tweet_tesla)
+mean_movement_no_relevant_tweet_tesla <- mean(movement_no_relevant_tweet_tesla)
+SEM_movement_relevant_tweet_tesla <- sd(movement_relevant_tweet_tesla)/sqrt(length((movement_relevant_tweet_tesla)))
+SEM_movement_no_relevant_tweet_tesla <- sd(movement_no_relevant_tweet_tesla)/sqrt(length((movement_no_relevant_tweet_tesla)))
+SEM_movement_no_relevant_tweet_tesla
+SEM_movement_relevant_tweet_tesla
+mean_movement_relevant_tweet_tesla
+mean_movement_no_relevant_tweet_tesla
+```
+
+plotting the results 
+```{r}
+#create sample data
+tesla_stock_move <- data.frame(name=c("movement_relevant_tweet_tesla","movement_no_relevant_tweet_tesla"),
+                  value=c(mean_movement_relevant_tweet_tesla, mean_movement_no_relevant_tweet_tesla),
+                  SEM=c(SEM_movement_relevant_tweet_tesla, SEM_movement_no_relevant_tweet_tesla)
+)
+
+#create barplot 
+ggplot(tesla_stock_move, aes(name, value))+
+  geom_col(size=5)+
+  geom_errorbar( aes(x=name, ymin=value-SEM, ymax=value+SEM), width=0.5, colour="orange", alpha=0.9, size=0.5)
+```
+
+TESLA REGRESSION
+
+```{r}
+write.table(tweets_df, file="data/Tweets_df.csv", sep=";")
+write.table(tesla_df, "data/Tesla_df.csv",  sep=";")
+write.table(bitcoin_df, "data/Bitcoin_df.csv",  sep=";")
+sentiment_tesla_df <- read.xlsx2("data/LM_Tesla.xlsx", 1, header=TRUE)
+sentiment_bitcoin_df <- read.xlsx2("data/LM_bitcoin_new.xlsx", 1, header=TRUE)
+sentiment_bitcoin_df <-sentiment_bitcoin_df %>% replace(.=="ERROR", NA)
+sentiment_tesla_df <-sentiment_tesla_df %>% replace(.=="ERROR", NA)
+```
+
+Regression: Predictor = sentiment of Musk-Tweets, Criterion = movement of stock-price on day of tweet 
+adjusted-R = 
+```{r}
+relevant_sentiment_tesla <- na.omit(sentiment_tesla_df)
+linear_Model_tesla_test <- lm(movement_in_percent_NEW~as.numeric(as.character(movement_relevant_compound)), data=relevant_sentiment_tesla)
+linear_Model_tesla_test
+summary(linear_Model_tesla_test)
+plot(relevant_sentiment_tesla$movement_relevant_compound, relevant_sentiment_tesla$movement_in_percent_NEW, xlab="Sentiment", ylab="Movement", col="darkblue", pch=16, main="Simple Linear Regression")
+abline(linear_Model_tesla_test)
+```
+
+New DF: per Relevant Tweets we assign movement and sentiment (compound).
+
+```{r}
+no_zero_sentiment_tesla_df <- relevant_sentiment_tesla %>% replace(.=="0", NA)
+no_zero_sentiment_tesla_df <- na.omit(no_zero_sentiment_tesla_df)
+linear_Model_tesla_test2 <- lm(movement_in_percent_NEW~as.numeric(as.character(movement_relevant_compound)), data=no_zero_sentiment_tesla_df)
+linear_Model_tesla_test
+summary(linear_Model_tesla_test)
+plot(no_zero_sentiment_tesla_df$movement_relevant_compound, no_zero_sentiment_tesla_df$movement_in_percent_NEW, xlab="Sentiment", ylab="Movement", col="darkblue", pch=16, main="Simple Linear Regression")
+abline(linear_Model_tesla_test2)
+```
+################################################################################################################
+BITCOIN 
+
+```{r}
+movement_no_relevant_tweet_bitcoin <- (filter(bitcoin_df, relevant_tweet_posted==0))$movement
+movement_relevant_tweet_bitcoin <- (filter(bitcoin_df, relevant_tweet_posted==1))$movement
+movement_bitcoin <- bitcoin_df$movement
+movement_no_tweet_bitcoin <- (filter(bitcoin_df, tweet_posted==FALSE))$movement
+movement_tweet_bitcoin <- (filter(bitcoin_df, tweet_posted==TRUE))$movement
+```
+
+testing the assumption of equal variances -> var-test not significant, calculate t-test 
+```{r}
+varianz_hom_all_btc <- var.test(movement_tweet_bitcoin, movement_no_tweet_bitcoin)
+varianz_hom_all_btc
+```
+
+Testing Hypothesis 3: Elon Musk-Tweets do have an impact on Bitcoin-Courses. 
+Hypothesis 3 can not be verified, movement in Btc-Cours does not differ depending on tweets from Elon Musk (t = -1.4, ns)
+```{r}
+t.test(movement_tweet_bitcoin, movement_no_tweet_bitcoin, var.equal = T, alternative = "two.sided")
+```
+
+creating values in order to plot the results of the independent sampled t-test
+```{r}
+# Means and create SEM
+mean_movement_tweet_bitcoin <- mean(movement_tweet_bitcoin)
+mean_movement_no_tweet_bitcoin <- mean(movement_no_tweet_bitcoin)
+SEM_movement_tweet_bitcoin <- sd(movement_tweet_bitcoin)/sqrt(length((movement_tweet_bitcoin)))
+SEM_movement_no_tweet_bitcoin <- sd(movement_no_tweet_bitcoin)/sqrt(length((movement_no_tweet_bitcoin)))
+SEM_movement_no_tweet_bitcoin
+SEM_movement_tweet_bitcoin
+mean_movement_tweet_bitcoin
+mean_movement_no_tweet_bitcoin
+```
+
+plotting the results 
+```{r}
+#create sample data
+bitcoin_move <- data.frame(name=c("movement_tweet_bitcoin","movement_no_tweet_bitcoin"),
+                  value=c(mean_movement_tweet_bitcoin, mean_movement_no_tweet_bitcoin),
+                  SEM=c(SEM_movement_tweet_bitcoin, SEM_movement_no_tweet_bitcoin)
+)
+
+#create barplot 
+ggplot(bitcoin_move, aes(name, value))+
+  geom_col(size=5)+
+  geom_errorbar( aes(x=name, ymin=value-SEM, ymax=value+SEM), width=0.5, colour="orange", alpha=0.9, size=0.5)
+
+
+
+```
+
+NEXT ANALYSIS BITCOIN
+comparison : do course-movements differ significantly from each other when Musk tweets something relevant (movement_relevant_tweet_bitcoin) vs. when Musk tweets nothing relevant (movement_no_tweet_bitcoin)? 
+
+first step: testing if variances of the two groups are equal, which they aren´t -> Welch-Test 
+```{r}
+var_hom <- var.test(movement_relevant_tweet_bitcoin, movement_no_relevant_tweet_bitcoin)
+var_hom
+```
+Welch-Test in order to test Hypothesis 4: Relevant Tweets from Elon Musk have an impact on Bitcoin-Courses. Hypothesis 4 can not be verified, relevant Tweets do not differ from unrelevant tweets (t = -0.42, ns)
+```{r}
+t.test(movement_relevant_tweet_bitcoin, movement_no_relevant_tweet_bitcoin, var.equal=F, alternative = "two.sided")
+```
+
+creating values in order to plot the results of the independent sampled t-test
+```{r}
+# Means and create SEM
+mean_movement_relevant_tweet_bitcoin <- mean(movement_relevant_tweet_bitcoin)
+mean_movement_no_relevant_tweet_bitcoin <- mean(movement_no_relevant_tweet_bitcoin)
+SEM_movement_relevant_tweet_bitcoin <- sd(movement_relevant_tweet_bitcoin)/sqrt(length((movement_relevant_tweet_bitcoin)))
+SEM_movement_no_relevant_tweet_bitcoin <- sd(movement_no_relevant_tweet_bitcoin)/sqrt(length((movement_no_relevant_tweet_bitcoin)))
+SEM_movement_no_relevant_tweet_bitcoin
+SEM_movement_relevant_tweet_bitcoin
+mean_movement_relevant_tweet_bitcoin
+mean_movement_no_relevant_tweet_bitcoin
+```
+
+plotting the results 
+
+```{r}
+#create sample data
+bitcoin_move <- data.frame(name=c("movement_relevant_tweet_bitcoin","movement_no_relevant_tweet_bitcoin"),
+                  value=c(mean_movement_relevant_tweet_bitcoin, mean_movement_no_relevant_tweet_bitcoin),
+                  SEM=c(SEM_movement_relevant_tweet_bitcoin, SEM_movement_no_relevant_tweet_bitcoin)
+)
+
+#create barplot 
+ggplot(bitcoin_move, aes(name, value))+
+  geom_col(size=5)+
+  geom_errorbar( aes(x=name, ymin=value-SEM, ymax=value+SEM), width=0.5, colour="orange", alpha=0.9, size=0.5)
+```
+
