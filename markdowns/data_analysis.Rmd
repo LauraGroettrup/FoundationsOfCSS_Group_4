@@ -1,0 +1,199 @@
+---
+title: "data_analysis"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+sentiment <- vader_df(combined_df$text)
+combined_df <- cbind (combined_df, sentiment["compound"])
+```
+
+## R Markdown
+
+Filter relevant movements
+
+```{r cars}
+movement_no_relevant_tweet_tesla <- (filter(tesla_df, relevant_tweet_posted==F))$movement_in_percent
+movement_relevant_tweet_tesla <- (filter(tesla_df, relevant_tweet_posted==T))$movement_in_percent
+movement_tesla <- tesla_df$movement_in_percent
+movement_no_tweet_tesla <- (filter(tesla_df, tweet_posted==FALSE))$movement_in_percent
+movement_tweet_tesla <- (filter(tesla_df, tweet_posted==TRUE))$movement_in_percent
+```
+
+## Including Plots
+
+vergleich movement tesla tweet vs no tweet (alle tweets) 
+p-value = 0.06355
+
+```{r pressure, echo=FALSE}
+varianzhomogenitaet_all <- var.test(movement_tweet_tesla, movement_no_tweet_tesla)
+varianzhomogenitaet_all
+```
+
+p < 0.7517 -> t.test with var.equal=TRUE
+p-value = 0.6673
+```{r pressure, echo=FALSE}
+t.test(movement_tweet_tesla, movement_no_tweet_tesla, var.equal = TRUE, alternative = "two.sided")
+```
+```{r}
+
+values <- c(-0.0002146109, 0.0015714135)
+barplot(values,
+        main = "Comparison Tweet vs. no Tweet in Stock-Price-Movement",
+        xlab = "condition", 
+        ylab = "movement", 
+        names.arg = c("tweet tesla", "no tweet tesla"))
+        
+```
+
+Standarddeviation of movement_tweet_tesla
+```{r}
+SEM_movement_tweet_tesla <- sd(movement_tweet_tesla)/sqrt(length((movement_tweet_tesla)))
+```
+
+Testen ob ein relevanter Tweet einfluss auf movement
+```{r pressure, echo=FALSE}
+var.test(movement_relevant_tweet_tesla, movement_no_relevant_tweet_tesla)
+```
+p > 0.05 -> t.test with var.equal=TRUE
+
+```{r pressure, echo=FALSE}
+t.test(movement_relevant_tweet_tesla, movement_no_relevant_tweet_tesla, var.equal=TRUE, alternative = "two.sided")
+```
+p > 0.05 -> keinen Unterschied im Tesla Movement abhängig davon ob Musk relevant gepostet hat oder nicht
+
+```{r}
+values <- c(0.0001624063, 0.0002778040)
+barplot(values,
+        main = "relevant Tweet vs. no relevant Tweet in Stock-Price-Movement",
+        xlab = "condition", 
+        ylab = "movement in percent", 
+        names.arg = c("relevant tweet tesla", "no relevant tweet tesla"),
+        ylim = c(0, 0.001))
+```
+
+TESLA REGRESSION
+
+Lineare Reg.: relevante Tweets und deren Movements
+```{r pressure, echo=FALSE}
+relevant_sentiment_tesla <- na.omit(sentiment_tesla_df)
+linear_Model_tesla_test <- lm(movement_in_percent_NEW~movement_relevant_compound, data=relevant_sentiment_tesla)
+linear_Model_tesla_test
+summary(linear_Model_tesla_test)
+plot(relevant_sentiment_tesla$movement_relevant_compound, relevant_sentiment_tesla$movement_in_percent_NEW, xlab="Predictor", ylab="Outcome", col="darkblue", pch=16, main="Simple Linear Regression")
+```
+
+New DF: per Relevant Tweets we assign movement and sentiment (compound).
+
+
+```{r pressure, echo=FALSE}
+no_zero_sentiment_tesla_df <- relevant_sentiment_tesla %>% replace(.=="0", NA)
+no_zero_sentiment_tesla_df <- na.omit(no_zero_sentiment_tesla_df)
+linear_Model_tesla_test2 <- lm(movement_in_percent_NEW~movement_relevant_compound, data=no_zero_sentiment_tesla_df)
+linear_Model_tesla_test
+summary(linear_Model_tesla_test)
+plot(no_zero_sentiment_tesla_df$movement_relevant_compound, no_zero_sentiment_tesla_df$movement_in_percent_NEW, xlab="Predictor", ylab="Outcome", col="darkblue", pch=16, main="Simple Linear Regression")
+```
+
+```{r cars}
+#Residuals against independent variable
+plot(no_zero_sentiment_tesla_df$movement_relevant_compound, residuals(linear_Model_tesla_test2), xlab="Predictor", ylab="Residuals", 
+     pch=20, col="red", main="Residuals Plot")
+abline(h=0, col="darkgrey")
+```
+
+BITCOIN REGRESSION
+Lineare Reg.: relevante Tweets und deren Movements
+```{r pressure, echo=FALSE}
+relevant_sentiment_bitcoin <- na.omit(sentiment_bitcoin_df)
+linear_Model_bitcoin_test <- lm(movement_in_percent_NEW~movement_relevant_compound, data=relevant_sentiment_bitcoin)
+linear_Model_bitcoin_test
+summary(linear_Model_bitcoin_test)
+plot(relevant_sentiment_bitcoin$movement_relevant_compound, relevant_sentiment_bitcoin$movement_in_percent_NEW, xlab="Predictor", ylab="Outcome", col="darkblue", pch=16, main="Simple Linear Regression")
+```
+
+New DF: per Relevant Tweets we assign movement and sentiment (compound).
+
+```{r pressure, echo=FALSE}
+no_zero_sentiment_bitcoin_df <- relevant_sentiment_bitcoin %>% replace(.=="0", NA)
+no_zero_sentiment_bitcoin_df <- na.omit(no_zero_sentiment_bitcoin_df)
+linear_Model_bitcoin_test2 <- lm(movement_in_percent_NEW~movement_relevant_compound, data=no_zero_sentiment_bitcoin_df)
+linear_Model_bitcoin_test
+summary(linear_Model_tesla_test)
+plot(no_zero_sentiment_bitcoin_df$movement_relevant_compound, no_zero_sentiment_bitcoin_df$movement_in_percent_NEW, xlab="Predictor", ylab="Outcome", col="darkblue", pch=16, main="Simple Linear Regression")
+```
+
+```{r cars}
+#Residuals against independent variable
+plot(no_zero_sentiment_bitcoin_df$movement_relevant_compound, residuals(linear_Model_bitcoin_test2), xlab="Predictor", ylab="Residuals", 
+     pch=20, col="red", main="Residuals Plot")
+abline(h=0, col="darkgrey")
+```
+
+
+```{r pressure, echo=FALSE}
+hist(linear_Model_bitcoin_test2$residuals, main="Distribution of Residuals", xlab="Residuals", col="darkorange")
+```
+
+```{r pressure, echo=FALSE}
+hist(linear_Model_tesla_test2$residuals, main="Distribution of Residuals", xlab="Residuals", col="darkorange")
+```
+Erstellung Variablen für Bitcoin Movements je nach tweet(-art)
+```{r cars}
+movement_no_relevant_tweet_bitcoin <- (filter(bitcoin_df, relevant_tweet_posted==0))$movement_in_percent
+movement_relevant_tweet_bitcoin <- (filter(bitcoin_df, relevant_tweet_posted==1))$movement_in_percent
+movement_bitcoin <- bitcoin_df$movement_in_percent
+movement_no_tweet_bitcoin <- (filter(bitcoin_df, tweet_posted==FALSE))$movement_in_percent
+movement_tweet_bitcoin <- (filter(bitcoin_df, tweet_posted==TRUE))$movement_in_percent
+```
+
+
+```{r pressure, echo=FALSE}
+varianzhomogenitaet_all_btc <- var.test(movement_tweet_bitcoin, movement_no_tweet_bitcoin)
+varianzhomogenitaet_all_btc
+```
+
+```{r pressure, echo=FALSE}
+t.test(movement_tweet_bitcoin, movement_no_tweet_bitcoin, var.equal = F, alternative = "two.sided")
+```
+
+```{r}
+values <- c(-1.92539229, -0.07897759)
+barplot(values,
+        main = "Tweet vs. no Tweet Bitcoin-Movement",
+        xlab = "condition", 
+        ylab = "movement in percent", 
+        names.arg = c("tweet bitcoin", "no tweet bitcoin"),
+        ylim = c(0, -2.5))
+```
+
+
+Testen ob ein relevanter Tweet einfluss auf movement von BTC
+```{r pressure, echo=FALSE}
+var.test(movement_relevant_tweet_bitcoin, movement_no_relevant_tweet_bitcoin)
+```
+
+```{r pressure, echo=FALSE}
+t.test(movement_relevant_tweet_bitcoin, movement_no_relevant_tweet_bitcoin, var.equal=F, alternative = "two.sided")
+
+```
+
+```{r pressure, echo=FALSE}
+values <- c(-0.2949244, -1.4910522)
+barplot(values,
+        main = "Tweet vs. no Tweet Bitcoin-Movement",
+        xlab = "condition", 
+        ylab = "movement in percent", 
+        names.arg = c("tweet bitcoin", "no tweet bitcoin"),
+        ylim = c(0, -3))
+```
+
+Kurstabelle
+```{r}
+x <- as.Date(bitcoin_df$date)
+
+y <- bitcoin_df$movement
+  
+plot(x, y, type = "l", lty = 1)
+```
