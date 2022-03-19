@@ -187,3 +187,12 @@ movement_in_percent <-tesla_df$movement / as.double(sub(".", "", tesla_df$Open))
 tesla_df <- cbind(tesla_df, movement_in_percent)
 movement_in_percent <-bitcoin_df$movement / as.double(sub(".", "", bitcoin_df$open))
 bitcoin_df <- cbind(bitcoin_df, movement_in_percent)
+
+# combine sentiment and movement via excel and read in again
+write.table(tweets_df, file="data\\Tweets_df.csv", sep=";")
+write.table(tesla_df, "data\\Tesla_df.csv",  sep=";")
+write.table(bitcoin_df, "data\\Bitcoin_df.csv",  sep=";")
+sentiment_tesla_df <- read.xlsx2("data\\LM_Tesla.xlsx", 1, header=TRUE)
+sentiment_bitcoin_df <- read.xlsx2("data\\LM_bitcoin_new.xlsx", 1, header=TRUE)
+sentiment_bitcoin_df <-sentiment_bitcoin_df %>% replace(.=="ERROR", NA)
+sentiment_tesla_df <-sentiment_tesla_df %>% replace(.=="ERROR", NA)
