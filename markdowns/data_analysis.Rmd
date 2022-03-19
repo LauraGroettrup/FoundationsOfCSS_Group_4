@@ -146,6 +146,7 @@ plot(no_zero_sentiment_tesla_df$movement_relevant_compound, no_zero_sentiment_te
 abline(linear_Model_tesla_test2)
 ```
 
+check if the residuals are normally distributed around 0
 ```{r}
 hist(residuals(linear_Model_tesla_test2))
 ```
