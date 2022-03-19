@@ -12,4 +12,4 @@ source("scripts\data_retrival.R")
 source("scripts\data_processing.R")
 If you are working on a Windows, you have to replace all '\' in the path names with '//'. This must also be done in the data_retrival.R and data_processing.R scripts!
 
-After this every single analysis step can be found and executed in markups/data_analysis.Rmd with explanation.
+After this every single analysis step can be found and executed in markdowns/data_analysis.Rmd with explanation.
