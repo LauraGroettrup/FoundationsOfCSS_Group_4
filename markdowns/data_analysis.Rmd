@@ -3,6 +3,11 @@ title: "data_analysis"
 output: pdf_document
 ---
 
+Hypothesis 1: Line 72
+Hypothesis 2: Line 219
+Hypothesis 3: Line 142
+Discussion Calc: Line 284
+
 ```{r}
 sentiment <- vader_df(combined_df$text)
 combined_df <- cbind (combined_df, sentiment["compound"])
@@ -23,14 +28,14 @@ movement_tweet_tesla <- (filter(tesla_df, tweet_posted==TRUE))$movement
 
 
 TESLA: 
-comparison: do stock-movements differ significantly from each other when Musk tweets something (movement_tweet_tesla) vs. when Musk tweets nothing (movement_no_tweet_tesla)? 
+comparison (not in report): do stock-movements differ significantly from each other when Musk tweets something (movement_tweet_tesla) vs. when Musk tweets nothing (movement_no_tweet_tesla)? 
 first step: testing if variances of the two groups are equal, which they are not -> using Welch-Test
 ```{r}
 var_hom <- var.test(movement_tweet_tesla, movement_no_tweet_tesla)
 var_hom
 ```
-t-test for independent samples to test hypothesis 1: Elon Musks tweets have an impact on tesla-stock-movements. 
-Hypothesis 1 could not be verified: Tesla-Stock-Movements do not differ in dependency of Elon Musks Tweets (t = -0.26, ns)
+t-test for independent samples to test assumption: Elon Musks tweets have an impact on tesla-stock-movements. 
+could not be verified: Tesla-Stock-Movements do not differ in dependency of Elon Musks Tweets (t = -0.26, ns)
 ```{r}
 t.test(movement_tweet_tesla, movement_no_tweet_tesla, var.equal = F, alternative = "two.sided")
 ```
@@ -66,7 +71,7 @@ hist(movement_tweet_tesla)
 hist(movement_no_tweet_tesla)
 ```
 NEXT ANALYSIS TESLA
-comparison: do stock-movements differ significantly from each other when Musk tweets something relevant (movement_relevant_tweet_tesla) vs. when Musk tweets nothing relevant (movement_no_tweet_tesla)? 
+HYPOTHESIS 1: do stock-movements differ significantly from each other when Musk tweets something relevant (movement_relevant_tweet_tesla) vs. when Musk tweets nothing relevant (movement_no_tweet_tesla)? 
 
 first step: testing if variances of the two groups are equal, which they are
 ```{r}
@@ -74,7 +79,7 @@ var_hom <- var.test(movement_relevant_tweet_tesla, movement_no_relevant_tweet_te
 var_hom
 ```
 
-t-test for independent samples to test hypothesis 2: Elon Musks relevant tweets have an impact on tesla-stock-movements. 
+t-test for independent samples to test hypothesis 1: Elon Musks relevant tweets have an impact on tesla-stock-movements. 
 Hypothesis 1 could not be verified: Tesla-Stock-Movements do not differ in dependency of Elon Musks relevant Tweets (t = 0.41, ns)
 
 ```{r}
@@ -124,7 +129,7 @@ sentiment_tesla_df <-sentiment_tesla_df %>% replace(.=="ERROR", NA)
 ```
 
 Regression: Predictor = sentiment of Musk-Tweets, Criterion = movement of stock-price on day of tweet 
-adjusted-R = 
+here we use all sentiment-values which leads to a lot of neutral ones that may undermine our data. 
 ```{r}
 relevant_sentiment_tesla <- na.omit(sentiment_tesla_df)
 linear_Model_tesla_test <- lm(movement_in_percent_NEW~as.numeric(as.character(movement_relevant_compound)), data=relevant_sentiment_tesla)
@@ -134,7 +139,9 @@ plot(relevant_sentiment_tesla$movement_relevant_compound, relevant_sentiment_tes
 abline(linear_Model_tesla_test)
 ```
 
+HYPOTHESIS 3
 New DF: per Relevant Tweets we assign movement and sentiment (compound).
+We calculate this regression without neutral values - we checked vader and came to the conclusion that a lot of tweets are marked as zero altough they are cleary positive/negative. 
 
 ```{r}
 no_zero_sentiment_tesla_df <- relevant_sentiment_tesla %>% replace(.=="0", NA)
@@ -147,6 +154,7 @@ abline(linear_Model_tesla_test2)
 ```
 
 check if the residuals are normally distributed around 0
+
 ```{r}
 hist(residuals(linear_Model_tesla_test2))
 ```
@@ -170,8 +178,8 @@ varianz_hom_all_btc <- var.test(movement_tweet_bitcoin, movement_no_tweet_bitcoi
 varianz_hom_all_btc
 ```
 
-Testing Hypothesis 3: Elon Musk-Tweets do have an impact on Bitcoin-Courses. 
-Hypothesis 3 can not be verified, movement in Btc-Cours does not differ depending on tweets from Elon Musk (t = -1.4, ns)
+Testing assumption (not in report): Elon Musk-Tweets do have an impact on Bitcoin-Courses. 
+Assumption can not be verified, movement in Btc-Cours does not differ depending on tweets from Elon Musk (t = -1.4, ns)
 ```{r}
 t.test(movement_tweet_bitcoin, movement_no_tweet_bitcoin, var.equal = T, alternative = "two.sided")
 ```
@@ -210,14 +218,14 @@ ggplot(bitcoin_move, aes(name, value, fill=name))+
 ```
 
 NEXT ANALYSIS BITCOIN
-comparison : do course-movements differ significantly from each other when Musk tweets something relevant (movement_relevant_tweet_bitcoin) vs. when Musk tweets nothing relevant (movement_no_tweet_bitcoin)? 
+HYPOTHESIS 2: do course-movements differ significantly from each other when Musk tweets something relevant (movement_relevant_tweet_bitcoin) vs. when Musk tweets nothing relevant (movement_no_tweet_bitcoin)? 
 
 first step: testing if variances of the two groups are equal, which they aren´t -> Welch-Test 
 ```{r}
 var_hom <- var.test(movement_relevant_tweet_bitcoin, movement_no_relevant_tweet_bitcoin)
 var_hom
 ```
-Welch-Test in order to test Hypothesis 4: Relevant Tweets from Elon Musk have an impact on Bitcoin-Courses. Hypothesis 4 can not be verified, relevant Tweets do not differ from unrelevant tweets (t = -0.42, ns)
+Welch-Test in order to test Hypothesis 2: Relevant Tweets from Elon Musk have an impact on Bitcoin-Courses. Hypothesis 2 can not be verified, relevant Tweets do not differ from unrelevant tweets (t = -0.42, ns)
 ```{r}
 t.test(movement_relevant_tweet_bitcoin, movement_no_relevant_tweet_bitcoin, var.equal=F, alternative = "two.sided")
 ```
